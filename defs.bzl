@@ -2,29 +2,30 @@
 def _pex_binary(ctx):
     repos = depset(transitive = [dep[PyInfo].imports for dep in ctx.attr.deps])
     inputs = depset(transitive = [dep[PyInfo].transitive_sources for dep in ctx.attr.deps])
-    outputs = [ctx.outputs.executable]
-    tools = [ctx.executable._pex]
+    print(repos)
+    print(inputs)
 
-    ctx.actions.run_shell(
-        #        executable = ctx.executable._pex,
-        command = """
-        ln -s . $WORKSPACE_NAME  # dirty hack to make the import paths work as they're prefixed with workspace_name
-        find -ls
-        $PEX "$@"
-        """,
+    # imports are prefixed with the workspace_name :shrug:
+    # so that we can avoid having to faff around with the depset(s) just add a symlink for them
+    workspace_name_symlink = ctx.actions.declare_symlink(ctx.workspace_name)
+    ctx.actions.symlink(output = workspace_name_symlink, target_path = ".")
+
+    # This fails (regardless of the symlink hack above)
+    ctx.actions.run(
+        executable = ctx.executable._pex,
         arguments = [
             ctx.actions.args()
                 .add("--disable-cache")
                 .add("--no-index")
                 .add("--output-file", ctx.outputs.executable)
                 .add("--entry-point", ctx.attr.main)
-                .add_all(repos, before_each = "--repo"),
+                .add_all(repos, before_each = "--repo")
+                .add_all(repos),
         ],
-        outputs = outputs,
+        outputs = [ctx.outputs.executable],
         inputs = inputs,
-        tools = tools,
         execution_requirements = {tag: tag for tag in ctx.attr.tags},
-        env = dict(PEX_ROOT = ".pex", PEX_IGNORE_RCFILES = "true", PEX_PYTHON = "python3.6", PEX = ctx.executable._pex.path, WORKSPACE_NAME = ctx.workspace_name),
+        env = dict(PEX_ROOT = ".pex", PEX_PYTHON = "python3.6"),
     )
 
 pex_binary = rule(

@@ -10,9 +10,8 @@ print(existing_rule("lib"))
 
 genrule(
     name = "gen/pex",
-    outs = ["pex"],
+    outs = ["gen.pex"],
     cmd = """
-    find
     PEX_ROOT=.pex $(execpath @pex//file) --disable-cache --output-file $@ --no-pypi --entry-point breen.nick --repo src/main/python src/main/python
     """,
     srcs = ["lib"],
@@ -24,3 +23,13 @@ sh_test(
     srcs = ["gen/pex"]
 )
 
+pex_binary(
+    name = "bin/pex",
+    main = "breen.nick",
+    deps = ["lib"]
+)
+
+sh_test(
+    name = "test/bin/pex",
+    srcs = ["bin/pex"]
+)

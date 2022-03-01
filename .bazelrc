@@ -1,0 +1,4 @@
+build --verbose_failures
+build --experimental_allow_unresolved_symlinks
+build --action_env=PEX_PYTHON=python3.6
+test --test_output errors
